@@ -1,33 +1,16 @@
 import os
 import requests
-import time
 
-def get_index(symbol, market=None):
-    API_KEY = os.environ['ALPHA_VANTAGE_KEY']
-    if market:
-        url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}.{market}&apikey={API_KEY}'
-    else:
-        url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={API_KEY}'
+def get_finnhub_quote(symbol):
+    API_KEY = os.environ['FINNHUB_KEY']
+    url = f'https://finnhub.io/api/v1/quote?symbol={symbol}&token={API_KEY}'
     response = requests.get(url)
-    print(f"Запрос к Alpha Vantage: {url}")
+    print(f"Запрос к Finnhub: {url}")
     print(f"Ответ: {response.text}")
     data = response.json()
     try:
-        price = float(data['Global Quote']['05. price'])
+        price = float(data['c'])
         return price
-    except Exception:
-        return None
-
-def get_fx(from_symbol, to_symbol):
-    API_KEY = os.environ['ALPHA_VANTAGE_KEY']
-    url = f'https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency={from_symbol}&to_currency={to_symbol}&apikey={API_KEY}'
-    response = requests.get(url)
-    print(f"Запрос к Alpha Vantage: {url}")
-    print(f"Ответ: {response.text}")
-    data = response.json()
-    try:
-        rate = float(data['Realtime Currency Exchange Rate']['5. Exchange Rate'])
-        return rate
     except Exception:
         return None
 
@@ -44,38 +27,21 @@ def get_news():
         news_list.append(f"• {art['title']}")
     return "\n".join(news_list) if news_list else "Нет свежих новостей."
 
-def analyze_impact(sp500, eurusd):
-    impact = ""
-    if sp500 and sp500 > 5000:
-        impact += "Рост S&P 500 может поддержать позитивное открытие GER40.\n"
-    if eurusd and eurusd < 1.08:
-        impact += "Слабый евро может поддержать экспортеров GER40.\n"
-    if not impact:
-        impact = "Существенных внешних драйверов для GER40 не отмечается."
-    return impact
-
 def make_report():
-    # Индексы и валюты
-    ger40 = get_index('GDAXI', 'F')      # DAX (GER40)
-    time.sleep(15)
-    sp500 = get_index('^GSPC')           # S&P 500
-    time.sleep(15)
-    eu50 = get_index('SX5E', 'F')        # Euro Stoxx 50 (EU50)
-    time.sleep(15)
-    fdax = get_index('FDAX', 'F')        # Фьючерс на DAX (может не поддерживаться)
-    time.sleep(15)
-    xauusd = get_fx('XAU', 'USD')        # Золото к доллару
-    time.sleep(15)
-    eurusd = get_fx('EUR', 'USD')        # EUR/USD
-    time.sleep(15)
-    gbpusd = get_fx('GBP', 'USD')        # GBP/USD
+    # Тикеры Finnhub:
+    # DAX: ^GDAXI, S&P500: ^GSPC, Euro Stoxx 50: ^STOXX50E, FDAX: FDAX2024 (фьючерс, уточни нужный контракт), XAU/USD: OANDA:XAU_USD, EUR/USD: OANDA:EUR_USD, GBP/USD: OANDA:GBP_USD
+    ger40 = get_finnhub_quote('^GDAXI')
+    sp500 = get_finnhub_quote('^GSPC')
+    eu50 = get_finnhub_quote('^STOXX50E')
+    fdax = get_finnhub_quote('FDAX2024')  # пример, уточни нужный контракт
+    xauusd = get_finnhub_quote('OANDA:XAU_USD')
+    eurusd = get_finnhub_quote('OANDA:EUR_USD')
+    gbpusd = get_finnhub_quote('OANDA:GBP_USD')
 
-    # Проверка данных
     if None in [ger40, sp500, eu50, fdax, xauusd, eurusd, gbpusd]:
         return "Не удалось получить данные по индексам или валютам. Подробности смотри в логах GitHub Actions."
 
     news = get_news()
-    impact = analyze_impact(sp500, eurusd)
     return f"""🌅 Доброе утро! Финансовый обзор:
 
 🇩🇪 GER40 (DAX): {ger40:.2f}
@@ -88,9 +54,6 @@ def make_report():
 
 📰 Важные новости:
 {news}
-
-📊 Возможное влияние на GER40:
-{impact}
 
 Хорошего дня и удачных инвестиций!
 """
