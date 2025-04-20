@@ -2,22 +2,12 @@ import os
 import requests
 import time
 
-def get_index(symbol, market):
-    # Для индексов используем функцию GLOBAL_QUOTE
+def get_index(symbol, market=None):
     API_KEY = os.environ['ALPHA_VANTAGE_KEY']
-    url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}.{market}&apikey={API_KEY}'
-    response = requests.get(url)
-    data = response.json()
-    try:
-        price = float(data['Global Quote']['05. price'])
-        return price
-    except Exception:
-        return None
-
-def get_sp500():
-    # S&P 500 через Alpha Vantage (SPX)
-    API_KEY = os.environ['ALPHA_VANTAGE_KEY']
-    url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=^GSPC&apikey={API_KEY}'
+    if market:
+        url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}.{market}&apikey={API_KEY}'
+    else:
+        url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={API_KEY}'
     response = requests.get(url)
     data = response.json()
     try:
@@ -61,21 +51,36 @@ def analyze_impact(sp500, eurusd):
     return impact
 
 def make_report():
-    # DAX (GER40) — тикер GDAXI на XETRA (market=F)
-    ger40 = get_index('GDAXI', 'F')
-    time.sleep(12)  # Alpha Vantage ограничивает 5 запросов в минуту!
-    sp500 = get_sp500()
+    # Индексы и валюты
+    ger40 = get_index('GDAXI', 'F')      # DAX (GER40)
     time.sleep(12)
-    eurusd = get_fx('EUR', 'USD')
-    if ger40 is None or sp500 is None or eurusd is None:
+    sp500 = get_index('^GSPC')           # S&P 500
+    time.sleep(12)
+    eu50 = get_index('SX5E', 'F')        # Euro Stoxx 50 (EU50)
+    time.sleep(12)
+    fdax = get_index('FDAX', 'F')        # Фьючерс на DAX (может не поддерживаться, зависит от Alpha Vantage)
+    time.sleep(12)
+    xauusd = get_fx('XAU', 'USD')        # Золото к доллару
+    time.sleep(12)
+    eurusd = get_fx('EUR', 'USD')        # EUR/USD
+    time.sleep(12)
+    gbpusd = get_fx('GBP', 'USD')        # GBP/USD
+
+    # Проверка данных
+    if None in [ger40, sp500, eu50, fdax, xauusd, eurusd, gbpusd]:
         return "Не удалось получить данные по индексам или валютам. Попробуйте позже."
+
     news = get_news()
     impact = analyze_impact(sp500, eurusd)
     return f"""🌅 Доброе утро! Финансовый обзор:
 
 🇩🇪 GER40 (DAX): {ger40:.2f}
+🇪🇺 Euro Stoxx 50 (EU50): {eu50:.2f}
+🇩🇪 FDAX (фьючерс на DAX): {fdax:.2f}
 🇺🇸 S&P 500: {sp500:.2f}
 💶 EUR/USD: {eurusd:.4f}
+💷 GBP/USD: {gbpusd:.4f}
+🥇 XAU/USD: {xauusd:.2f}
 
 📰 Важные новости:
 {news}
