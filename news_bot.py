@@ -72,7 +72,9 @@ def send_telegram_message(message):
         'text': message,
         'parse_mode': 'HTML'
     }
-    requests.post(url, data=payload)
+    response = requests.post(url, data=payload)  # ← Сохраняем результат в переменную
+    print(response.text)  # ← Теперь всё правильно!
+    return response.json()
 
 def main():
     try:
