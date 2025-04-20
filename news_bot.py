@@ -1,7 +1,7 @@
 import os
 import requests
 
-def get_finnhub_quote(symbol):
+def get_finnhub_fx(symbol):
     API_KEY = os.environ['FINNHUB_KEY']
     url = f'https://finnhub.io/api/v1/quote?symbol={symbol}&token={API_KEY}'
     response = requests.get(url)
@@ -28,29 +28,15 @@ def get_news():
     return "\n".join(news_list) if news_list else "Нет свежих новостей."
 
 def make_report():
-    # Тикеры Finnhub:
-    # DAX: ^GDAXI, S&P500: ^GSPC, Euro Stoxx 50: ^STOXX50E, FDAX: FDAX2024 (фьючерс, уточни нужный контракт), XAU/USD: OANDA:XAU_USD, EUR/USD: OANDA:EUR_USD, GBP/USD: OANDA:GBP_USD
-    ger40 = get_finnhub_quote('^GDAXI')
-    sp500 = get_finnhub_quote('^GSPC')
-    eu50 = get_finnhub_quote('^STOXX50E')
-    fdax = get_finnhub_quote('FDAX2024')  # пример, уточни нужный контракт
-    xauusd = get_finnhub_quote('OANDA:XAU_USD')
-    eurusd = get_finnhub_quote('OANDA:EUR_USD')
-    gbpusd = get_finnhub_quote('OANDA:GBP_USD')
-
-    if None in [ger40, sp500, eu50, fdax, xauusd, eurusd, gbpusd]:
-        return "Не удалось получить данные по индексам или валютам. Подробности смотри в логах GitHub Actions."
-
+    eurusd = get_finnhub_fx('OANDA:EUR_USD')
+    gbpusd = get_finnhub_fx('OANDA:GBP_USD')
+    if eurusd is None or gbpusd is None:
+        return "Не удалось получить данные по валютам. Подробности смотри в логах GitHub Actions."
     news = get_news()
     return f"""🌅 Доброе утро! Финансовый обзор:
 
-🇩🇪 GER40 (DAX): {ger40:.2f}
-🇪🇺 Euro Stoxx 50 (EU50): {eu50:.2f}
-🇩🇪 FDAX (фьючерс на DAX): {fdax:.2f}
-🇺🇸 S&P 500: {sp500:.2f}
 💶 EUR/USD: {eurusd:.4f}
 💷 GBP/USD: {gbpusd:.4f}
-🥇 XAU/USD: {xauusd:.2f}
 
 📰 Важные новости:
 {news}
