@@ -1,26 +1,43 @@
 import os
-import yfinance as yf
 import requests
+import time
 
-def get_indices_and_fx():
-    # Получаем данные по индексам и валютам
-    ger40 = yf.Ticker("^GDAXI")  # GER40 (DAX)
-    sp500 = yf.Ticker("^GSPC")   # S&P 500
-    eurusd = yf.Ticker("EURUSD=X")
-    usdeur = yf.Ticker("USDEUR=X")
+def get_index(symbol, market):
+    # Для индексов используем функцию GLOBAL_QUOTE
+    API_KEY = os.environ['ALPHA_VANTAGE_KEY']
+    url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}.{market}&apikey={API_KEY}'
+    response = requests.get(url)
+    data = response.json()
+    try:
+        price = float(data['Global Quote']['05. price'])
+        return price
+    except Exception:
+        return None
 
-    ger40_data = ger40.history(period="1d")
-    sp500_data = sp500.history(period="1d")
-    eurusd_data = eurusd.history(period="1d")
+def get_sp500():
+    # S&P 500 через Alpha Vantage (SPX)
+    API_KEY = os.environ['ALPHA_VANTAGE_KEY']
+    url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=^GSPC&apikey={API_KEY}'
+    response = requests.get(url)
+    data = response.json()
+    try:
+        price = float(data['Global Quote']['05. price'])
+        return price
+    except Exception:
+        return None
 
-    ger40_close = ger40_data['Close'].iloc[-1]
-    sp500_close = sp500_data['Close'].iloc[-1]
-    eurusd_close = eurusd_data['Close'].iloc[-1]
-
-    return ger40_close, sp500_close, eurusd_close
+def get_fx(from_symbol, to_symbol):
+    API_KEY = os.environ['ALPHA_VANTAGE_KEY']
+    url = f'https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency={from_symbol}&to_currency={to_symbol}&apikey={API_KEY}'
+    response = requests.get(url)
+    data = response.json()
+    try:
+        rate = float(data['Realtime Currency Exchange Rate']['5. Exchange Rate'])
+        return rate
+    except Exception:
+        return None
 
 def get_news():
-    # Пример с NewsAPI (нужен бесплатный ключ)
     NEWS_API_KEY = os.environ.get('NEWS_API_KEY')
     if not NEWS_API_KEY:
         return "Новости не получены (нет API ключа)."
@@ -34,18 +51,24 @@ def get_news():
     return "\n".join(news_list) if news_list else "Нет свежих новостей."
 
 def analyze_impact(sp500, eurusd):
-    # Примитивный анализ влияния на GER40
     impact = ""
-    if sp500 > 5000:
+    if sp500 and sp500 > 5000:
         impact += "Рост S&P 500 может поддержать позитивное открытие GER40.\n"
-    if eurusd < 1.08:
+    if eurusd and eurusd < 1.08:
         impact += "Слабый евро может поддержать экспортеров GER40.\n"
     if not impact:
         impact = "Существенных внешних драйверов для GER40 не отмечается."
     return impact
 
 def make_report():
-    ger40, sp500, eurusd = get_indices_and_fx()
+    # DAX (GER40) — тикер GDAXI на XETRA (market=F)
+    ger40 = get_index('GDAXI', 'F')
+    time.sleep(12)  # Alpha Vantage ограничивает 5 запросов в минуту!
+    sp500 = get_sp500()
+    time.sleep(12)
+    eurusd = get_fx('EUR', 'USD')
+    if ger40 is None or sp500 is None or eurusd is None:
+        return "Не удалось получить данные по индексам или валютам. Попробуйте позже."
     news = get_news()
     impact = analyze_impact(sp500, eurusd)
     return f"""🌅 Доброе утро! Финансовый обзор:
@@ -72,8 +95,8 @@ def send_telegram_message(message):
         'text': message,
         'parse_mode': 'HTML'
     }
-    response = requests.post(url, data=payload)  # ← Сохраняем результат в переменную
-    print(response.text)  # ← Теперь всё правильно!
+    response = requests.post(url, data=payload)
+    print(response.text)
     return response.json()
 
 def main():
