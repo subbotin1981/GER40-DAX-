@@ -9,6 +9,8 @@ def get_index(symbol, market=None):
     else:
         url = f'https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={API_KEY}'
     response = requests.get(url)
+    print(f"Запрос к Alpha Vantage: {url}")
+    print(f"Ответ: {response.text}")
     data = response.json()
     try:
         price = float(data['Global Quote']['05. price'])
@@ -20,6 +22,8 @@ def get_fx(from_symbol, to_symbol):
     API_KEY = os.environ['ALPHA_VANTAGE_KEY']
     url = f'https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency={from_symbol}&to_currency={to_symbol}&apikey={API_KEY}'
     response = requests.get(url)
+    print(f"Запрос к Alpha Vantage: {url}")
+    print(f"Ответ: {response.text}")
     data = response.json()
     try:
         rate = float(data['Realtime Currency Exchange Rate']['5. Exchange Rate'])
@@ -53,22 +57,22 @@ def analyze_impact(sp500, eurusd):
 def make_report():
     # Индексы и валюты
     ger40 = get_index('GDAXI', 'F')      # DAX (GER40)
-    time.sleep(12)
+    time.sleep(15)
     sp500 = get_index('^GSPC')           # S&P 500
-    time.sleep(12)
+    time.sleep(15)
     eu50 = get_index('SX5E', 'F')        # Euro Stoxx 50 (EU50)
-    time.sleep(12)
-    fdax = get_index('FDAX', 'F')        # Фьючерс на DAX (может не поддерживаться, зависит от Alpha Vantage)
-    time.sleep(12)
+    time.sleep(15)
+    fdax = get_index('FDAX', 'F')        # Фьючерс на DAX (может не поддерживаться)
+    time.sleep(15)
     xauusd = get_fx('XAU', 'USD')        # Золото к доллару
-    time.sleep(12)
+    time.sleep(15)
     eurusd = get_fx('EUR', 'USD')        # EUR/USD
-    time.sleep(12)
+    time.sleep(15)
     gbpusd = get_fx('GBP', 'USD')        # GBP/USD
 
     # Проверка данных
     if None in [ger40, sp500, eu50, fdax, xauusd, eurusd, gbpusd]:
-        return "Не удалось получить данные по индексам или валютам. Попробуйте позже."
+        return "Не удалось получить данные по индексам или валютам. Подробности смотри в логах GitHub Actions."
 
     news = get_news()
     impact = analyze_impact(sp500, eurusd)
