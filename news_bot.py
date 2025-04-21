@@ -1,5 +1,6 @@
 import os
 import requests
+import openai
 
 def get_fmp_quote(symbol):
     API_KEY = os.environ['FMP_KEY']
@@ -27,6 +28,24 @@ def get_news():
         news_list.append(f"• {art['title']}")
     return "\n".join(news_list) if news_list else "Нет свежих новостей."
 
+def gpt_analysis(xauusd, eurusd, gbpusd, news):
+    openai.api_key = os.environ['OPENAI_API_KEY']
+    prompt = f"""Ты — финансовый аналитик. Вот свежие данные:
+Золото (XAU/USD): {xauusd:.2f}
+EUR/USD: {eurusd:.4f}
+GBP/USD: {gbpusd:.4f}
+Новости: {news}
+
+Сделай краткий прогноз на сегодня для валют и золота, выдели возможные риски и драйверы. Пиши лаконично, 2-4 предложения.
+"""
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",  # или "gpt-4", если есть доступ
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=200,
+        temperature=0.7,
+    )
+    return response.choices[0].message.content.strip()
+
 def make_report():
     xauusd = get_fmp_quote('GCUSD')
     eurusd = get_fmp_quote('EURUSD')
@@ -36,6 +55,11 @@ def make_report():
         return "Не удалось получить данные по золоту или валютам. Подробности смотри в логах GitHub Actions."
 
     news = get_news()
+    try:
+        forecast = gpt_analysis(xauusd, eurusd, gbpusd, news)
+    except Exception as e:
+        forecast = f"Не удалось получить прогноз от GPT: {e}"
+
     return f"""🌅 Доброе утро! Финансовый обзор:
 
 🥇 XAU/USD: {xauusd:.2f}
@@ -44,6 +68,9 @@ def make_report():
 
 📰 Важные новости:
 {news}
+
+🤖 Прогноз и анализ от GPT:
+{forecast}
 
 Хорошего дня и удачных инвестиций!
 """
