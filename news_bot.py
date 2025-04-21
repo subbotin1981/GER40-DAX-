@@ -1,15 +1,15 @@
 import os
 import requests
 
-def get_finnhub_fx(symbol):
-    API_KEY = os.environ['FINNHUB_KEY']
-    url = f'https://finnhub.io/api/v1/quote?symbol={symbol}&token={API_KEY}'
+def get_fmp_quote(symbol):
+    API_KEY = os.environ['FMP_KEY']
+    url = f'https://financialmodelingprep.com/api/v3/quote/{symbol}?apikey={API_KEY}'
     response = requests.get(url)
-    print(f"Запрос к Finnhub: {url}")
+    print(f"Запрос к FMP: {url}")
     print(f"Ответ: {response.text}")
     data = response.json()
     try:
-        price = float(data['c'])
+        price = float(data[0]['price'])
         return price
     except Exception:
         return None
@@ -28,13 +28,24 @@ def get_news():
     return "\n".join(news_list) if news_list else "Нет свежих новостей."
 
 def make_report():
-    eurusd = get_finnhub_fx('OANDA:EUR_USD')
-    gbpusd = get_finnhub_fx('OANDA:GBP_USD')
-    if eurusd is None or gbpusd is None:
-        return "Не удалось получить данные по валютам. Подробности смотри в логах GitHub Actions."
+    # Тикеры FMP: DAX (^GDAXI), S&P500 (^GSPC), Euro Stoxx 50 (^STOXX50E), золото (GCUSD), EURUSD, GBPUSD
+    ger40 = get_fmp_quote('^GDAXI')
+    sp500 = get_fmp_quote('^GSPC')
+    eu50 = get_fmp_quote('^STOXX50E')
+    xauusd = get_fmp_quote('GCUSD')
+    eurusd = get_fmp_quote('EURUSD')
+    gbpusd = get_fmp_quote('GBPUSD')
+
+    if None in [ger40, sp500, eu50, xauusd, eurusd, gbpusd]:
+        return "Не удалось получить данные по индексам или валютам. Подробности смотри в логах GitHub Actions."
+
     news = get_news()
     return f"""🌅 Доброе утро! Финансовый обзор:
 
+🇩🇪 GER40 (DAX): {ger40:.2f}
+🇪🇺 Euro Stoxx 50 (EU50): {eu50:.2f}
+🇺🇸 S&P 500: {sp500:.2f}
+🥇 XAU/USD: {xauusd:.2f}
 💶 EUR/USD: {eurusd:.4f}
 💷 GBP/USD: {gbpusd:.4f}
 
