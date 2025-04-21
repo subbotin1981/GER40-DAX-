@@ -45,7 +45,7 @@ GBP/USD: {gbpusd:.4f}
         temperature=0.7,
     )
     return response.choices[0].message.content.strip()
-    
+
 def make_report():
     xauusd = get_fmp_quote('GCUSD')
     eurusd = get_fmp_quote('EURUSD')
