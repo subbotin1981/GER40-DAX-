@@ -29,7 +29,7 @@ def get_news():
     return "\n".join(news_list) if news_list else "Нет свежих новостей."
 
 def gpt_analysis(xauusd, eurusd, gbpusd, news):
-    openai.api_key = os.environ['OPENAI_API_KEY']
+    client = openai.OpenAI(api_key=os.environ['OPENAI_API_KEY'])
     prompt = f"""Ты — финансовый аналитик. Вот свежие данные:
 Золото (XAU/USD): {xauusd:.2f}
 EUR/USD: {eurusd:.4f}
@@ -38,14 +38,14 @@ GBP/USD: {gbpusd:.4f}
 
 Сделай краткий прогноз на сегодня для валют и золота, выдели возможные риски и драйверы. Пиши лаконично, 2-4 предложения.
 """
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",  # или "gpt-4", если есть доступ
         messages=[{"role": "user", "content": prompt}],
         max_tokens=200,
         temperature=0.7,
     )
     return response.choices[0].message.content.strip()
-
+    
 def make_report():
     xauusd = get_fmp_quote('GCUSD')
     eurusd = get_fmp_quote('EURUSD')
